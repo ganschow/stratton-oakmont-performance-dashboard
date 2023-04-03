@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from currency_converter import CurrencyConverter
 from datetime import datetime
 import plotly.express as px
 
