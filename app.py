@@ -47,10 +47,12 @@ def process_tasty_tax_document(data: pd.DataFrame) -> pd.DataFrame:
     return account
 
 st.set_page_config(layout="wide")
-st.title("Stratton Oakmont Performance Dashboard")
 
 with st.sidebar:
-    uploaded_file = st.file_uploader("Choose a file")
+    st.title("Stratton Oakmont Performance Dashboard")
+    st.header("[-> Tastytrade Tax Center](https://manage.tastytrade.com/index.html#/accounts/tax-center)")
+
+    uploaded_file = st.file_uploader("")
     if uploaded_file is not None:
         data = pd.read_csv(uploaded_file)
         account = process_tasty_tax_document(data)    
@@ -78,20 +80,33 @@ with st.sidebar:
 if uploaded_file is not None:
     pl_last = int(account_filtered["P/L"].sum())
     pl_max = int(account_filtered["CUMULATED P/L"].max())
-    pl_ann = int(pl_last / ((account["CLOSE DATE"].max() - account["CLOSE DATE"].min()).days) * 365)
+    pl_ann = int(
+        pl_last / ((
+        account_filtered["CLOSE DATE"].max() - 
+        account_filtered["CLOSE DATE"].min()).days) * 365)
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("P/L last", f"$ {pl_last}")
-    col2.metric("P/L max", f"$ {pl_max}")
-    col3.metric("P/L annualized", f"$ {pl_ann}")
-    
-    st.subheader("Trade Log")
-    st.dataframe(account_filtered, use_container_width=True)
+    col1.metric("P/L last", "$ {:,}".format(pl_last))
+    col2.metric("P/L max", "$ {:,}".format(pl_max))
+    col3.metric("P/L annualized", "$ {:,}".format(pl_ann))
 
-    st.subheader("Cumulated P/L")
+    monthly = []
+    st.write("P/L by month")
+    for m in range(1,12):
+        pl = account_filtered[account_filtered["CLOSE DATE"].month==1]["P/L"].cumsum()
+        monthly.append({m: pl})
+    st.write(monthly)
+
+    ### Plot
     df_cpl = account_filtered.groupby("CLOSE DATE")["CUMULATED P/L"].last().reset_index()
     fig = px.line(df_cpl, x="CLOSE DATE", y="CUMULATED P/L")
 
     df_pl = account_filtered.groupby("CLOSE DATE")["P/L"].sum().reset_index()
     fig.add_bar(x=df_pl["CLOSE DATE"], y=df_pl["P/L"], name="Daily P/L")
     st.plotly_chart(fig, use_container_width=True)
+
+    ### Trade Log
+    st.subheader("Trade Log")
+    st.dataframe(account_filtered, use_container_width=True)   
+
+    st.subheader("Tax Section")
